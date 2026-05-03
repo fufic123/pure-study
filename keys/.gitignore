@@ -1,0 +1,2 @@
+# Ignore actual key files — generate them locally, never commit.
+*.pem

@@ -1,0 +1,88 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pure_study
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  falkordb:
+    image: falkordb/falkordb:latest
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  auth:
+    build:
+      context: ./services/auth
+    ports:
+      - "8001:8001"
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/pure_study
+
+  gateway:
+    build:
+      context: ./services/gateway
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      - auth
+      - redis
+    environment:
+      REDIS_URL: redis://redis:6379/0
+
+  graph:
+    build:
+      context: ./services/graph
+    ports:
+      - "8002:8002"
+    env_file: .env
+
+  ai:
+    build:
+      context: ./services/ai
+    ports:
+      - "8003:8003"
+    env_file: .env
+
+  material:
+    build:
+      context: ./services/material
+    ports:
+      - "8004:8004"
+    env_file: .env
+
+  check:
+    build:
+      context: ./services/check
+    ports:
+      - "8005:8005"
+    env_file: .env
+
+volumes:
+  postgres_data:
