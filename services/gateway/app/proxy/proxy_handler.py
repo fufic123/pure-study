@@ -47,6 +47,9 @@ class ProxyHandler:
         }
         if user_id:
             headers["x-user-id"] = str(user_id)
+        rid = getattr(request.state, "request_id", None)
+        if rid:
+            headers["x-request-id"] = rid
 
         body = await request.body()
         http_client: httpx.AsyncClient = request.app.state.http_client
