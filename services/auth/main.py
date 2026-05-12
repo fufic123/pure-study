@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-
-from app.db.session import engine, Base
 from app.api.routers.auth_router import router as auth_router
 from app.api.routers.google_router import router as google_router
+from app.db.session import Base, engine
+from app.logging_config import setup_logging
+from fastapi import FastAPI
+
+setup_logging()
 
 
 @asynccontextmanager

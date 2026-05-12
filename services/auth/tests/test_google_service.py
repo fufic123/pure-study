@@ -2,9 +2,7 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from app.services.google_service import GoogleService
-
 
 _GOOGLE_USER_INFO = {"id": "google-uid-123", "email": "user@gmail.com"}
 

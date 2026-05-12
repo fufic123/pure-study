@@ -2,9 +2,8 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
-
 from app.services.auth_service import AuthService
+from fastapi import HTTPException
 
 
 @pytest.mark.asyncio
@@ -41,11 +40,10 @@ async def test_login_valid_credentials_returns_tokens(mock_session, mock_user):
     with (
         patch("app.services.auth_service.UserRepository") as MockUserRepo,
         patch("app.services.auth_service.RefreshTokenRepository") as MockTokenRepo,
-        patch("app.services.auth_service._pwd_context") as mock_pwd,
+        patch("app.services.auth_service._verify_password", return_value=True),
     ):
         MockUserRepo.return_value.get_by_email = AsyncMock(return_value=mock_user)
         MockTokenRepo.return_value.create = AsyncMock()
-        mock_pwd.verify.return_value = True
 
         result = await AuthService(mock_session).login("test@example.com", "password123")
 
@@ -57,10 +55,9 @@ async def test_login_valid_credentials_returns_tokens(mock_session, mock_user):
 async def test_login_wrong_password_raises_401(mock_session, mock_user):
     with (
         patch("app.services.auth_service.UserRepository") as MockUserRepo,
-        patch("app.services.auth_service._pwd_context") as mock_pwd,
+        patch("app.services.auth_service._verify_password", return_value=False),
     ):
         MockUserRepo.return_value.get_by_email = AsyncMock(return_value=mock_user)
-        mock_pwd.verify.return_value = False
 
         with pytest.raises(HTTPException) as exc:
             await AuthService(mock_session).login("test@example.com", "wrong")

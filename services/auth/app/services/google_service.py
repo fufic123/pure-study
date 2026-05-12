@@ -1,12 +1,12 @@
 import httpx
 from fastapi import HTTPException, status
+from settings import settings
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dtos.token_response import TokenResponse
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
 from app.services.token_service import TokenService
-from settings import settings
 
 _GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 _GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"

@@ -5,15 +5,14 @@ but session and service methods mocked out.
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from fastapi import FastAPI, HTTPException
-from httpx import ASGITransport, AsyncClient
-
 from app.api.dtos.token_response import TokenResponse
 from app.api.routers.auth_router import router as auth_router
 from app.api.routers.google_router import router as google_router
 from app.db.session import get_session
 from app.services.auth_service import AuthService
 from app.services.google_service import GoogleService
+from fastapi import FastAPI, HTTPException
+from httpx import ASGITransport, AsyncClient
 
 
 @pytest.fixture

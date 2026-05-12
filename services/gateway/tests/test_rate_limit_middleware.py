@@ -1,10 +1,9 @@
 import pytest
+from app.middleware.rate_limit_middleware import RateLimitMiddleware
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-
-from app.middleware.rate_limit_middleware import RateLimitMiddleware
 
 
 class _InjectUserIdMiddleware(BaseHTTPMiddleware):

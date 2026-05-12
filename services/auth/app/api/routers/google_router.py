@@ -1,6 +1,9 @@
 from fastapi import APIRouter
 
-from app.api.handlers.google_handler import google_auth_url_handler, google_callback_handler
+from app.api.handlers.google_handler import (
+    google_auth_url_handler,
+    google_callback_handler,
+)
 
 router = APIRouter()
 

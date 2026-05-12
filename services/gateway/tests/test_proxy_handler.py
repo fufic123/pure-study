@@ -2,12 +2,11 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from app.proxy.proxy_handler import _ROUTE_MAP, ProxyHandler
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-
-from app.proxy.proxy_handler import ProxyHandler, _ROUTE_MAP
 
 
 def _upstream_response(status_code: int = 200, body: bytes = b'{"ok":true}') -> MagicMock:

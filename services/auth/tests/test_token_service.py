@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 import pytest
-
 from app.services.token_service import TokenService
 
 

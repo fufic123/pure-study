@@ -2,12 +2,14 @@ from contextlib import asynccontextmanager
 
 import httpx
 import redis.asyncio as redis
-from fastapi import FastAPI
-
+from app.logging_config import setup_logging
 from app.middleware.jwt_middleware import JWTMiddleware
 from app.middleware.rate_limit_middleware import RateLimitMiddleware
 from app.routers.proxy_router import router as proxy_router
+from fastapi import FastAPI
 from settings import settings
+
+setup_logging()
 
 
 @asynccontextmanager

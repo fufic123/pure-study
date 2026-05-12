@@ -40,7 +40,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import jwt
 import pytest
-
 from app.api.dtos.token_response import TokenResponse
 from app.models.refresh_token import RefreshToken
 from app.models.user import User

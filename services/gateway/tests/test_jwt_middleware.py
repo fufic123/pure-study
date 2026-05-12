@@ -1,10 +1,9 @@
 import pytest
+from app.middleware.jwt_middleware import JWTMiddleware
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-
-from app.middleware.jwt_middleware import JWTMiddleware
 
 
 def make_test_app() -> FastAPI:
