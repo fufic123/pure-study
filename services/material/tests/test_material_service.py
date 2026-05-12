@@ -47,12 +47,12 @@ async def test_search_unknown_source_raises_400():
 async def test_search_all_aggregates_results_from_all_sources():
     svc = MaterialService()
     mit_results = [_course("mit_ocw", "m1", "MIT Chemistry")]
-    ka_results = [_course("khan_academy", "k1", "KA Chemistry")]
+    wiki_results = [_course("wikipedia", "k1", "Wikipedia Chemistry")]
 
     with patch("app.services.material_service.get_source") as mock_get:
         def side_effect(sid):
             m = AsyncMock()
-            m.search = AsyncMock(return_value=mit_results if sid == "mit_ocw" else ka_results)
+            m.search = AsyncMock(return_value=mit_results if sid == "mit_ocw" else wiki_results)
             return m
         mock_get.side_effect = side_effect
 
@@ -60,7 +60,7 @@ async def test_search_all_aggregates_results_from_all_sources():
 
     sources = {r.source for r in results}
     assert "mit_ocw" in sources
-    assert "khan_academy" in sources
+    assert "wikipedia" in sources
 
 
 @pytest.mark.asyncio
@@ -74,13 +74,13 @@ async def test_search_all_ignores_failed_sources():
             if sid == "mit_ocw":
                 m.search = AsyncMock(side_effect=Exception("OCW down"))
             else:
-                m.search = AsyncMock(return_value=[_course("khan_academy")])
+                m.search = AsyncMock(return_value=[_course("wikipedia")])
             return m
         mock_get.side_effect = side_effect
 
         results = await svc.search_all("chemistry")
 
-    assert all(r.source == "khan_academy" for r in results)
+    assert all(r.source == "wikipedia" for r in results)
 
 
 @pytest.mark.asyncio
@@ -106,4 +106,4 @@ async def test_list_sources_returns_both_whitelisted_sources():
     sources = svc.list_sources()
     ids = {s["id"] for s in sources}
     assert "mit_ocw" in ids
-    assert "khan_academy" in ids
+    assert "wikipedia" in ids

@@ -28,15 +28,15 @@ class MaterialService:
 
     async def search_all(self, query: str, limit: int = 5) -> list[CourseResult]:
         log.info("search_all | query=%s limit=%d", query[:60], limit)
-        tasks = [get_source(sid).search(query, limit=limit) for sid in ("mit_ocw", "khan_academy")]
+        source_ids = ("mit_ocw", "wikipedia")
+        tasks = [get_source(sid).search(query, limit=limit) for sid in source_ids]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         combined: list[CourseResult] = []
-        for i, r in enumerate(results):
-            source_id = ("mit_ocw", "khan_academy")[i]
+        for sid, r in zip(source_ids, results):
             if isinstance(r, Exception):
-                log.warning("search_all source failed | source=%s error=%s", source_id, r)
+                log.warning("search_all source failed | source=%s error=%s", sid, r)
             else:
-                log.debug("search_all partial | source=%s results=%d", source_id, len(r))
+                log.debug("search_all partial | source=%s results=%d", sid, len(r))
                 combined.extend(r)
         log.info("search_all done | total=%d", len(combined))
         return combined
@@ -50,5 +50,5 @@ class MaterialService:
             raise HTTPException(status_code=400, detail=str(e))
         result = await source.fetch_topics(course_id)
         log.info("fetch_topics done | source=%s course=%s topics=%d",
-                 source_id, course_id, len(result.subtopics) if result else 0)
+                 source_id, course_id, len(result.topics) if result else 0)
         return result
