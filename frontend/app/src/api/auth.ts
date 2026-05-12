@@ -21,3 +21,8 @@ export async function refresh(refreshToken: string): Promise<{ access_token: str
   })
   return data
 }
+
+export async function getGoogleAuthUrl(): Promise<string> {
+  const { data } = await apiClient.get<{ url: string }>('/auth/google')
+  return data.url
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { login as apiLogin, register as apiRegister } from '../api/auth'
+import { login as apiLogin, register as apiRegister, getGoogleAuthUrl } from '../api/auth'
 import { useAuthStore } from '../store/auth'
 import type { User } from '../types'
 
@@ -39,6 +39,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -150,8 +151,22 @@ export default function AuthPage() {
 
           <div className="divider">or</div>
 
-          <button type="button" className="btn btn-ghost" disabled>
-            <GoogleIcon /> Continue with Google
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={googleLoading}
+            onClick={() => {
+              setGoogleLoading(true)
+              setError(null)
+              getGoogleAuthUrl()
+                .then((url) => { window.location.href = url })
+                .catch(() => {
+                  setError('Could not reach Google. Try again.')
+                  setGoogleLoading(false)
+                })
+            }}
+          >
+            <GoogleIcon /> {googleLoading ? '…' : 'Continue with Google'}
           </button>
 
           <div className="auth-switch">

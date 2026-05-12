@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/auth'
 import AuthPage from './pages/AuthPage'
+import AuthCallbackPage from './pages/AuthCallbackPage'
 import OnboardingPage from './pages/OnboardingPage'
 import CoursesPage from './pages/CoursesPage'
 import CoursePage from './pages/CoursePage'
@@ -46,6 +47,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<AuthPage />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route
         path="/onboarding"
         element={

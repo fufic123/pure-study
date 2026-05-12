@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
+    frontend_url: str = "http://localhost:3000"
 
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30
