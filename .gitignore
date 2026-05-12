@@ -26,3 +26,8 @@ Thumbs.db
 
 # uv
 .uv/
+uv.lock
+
+# Node
+node_modules/
+frontend/app/dist/
