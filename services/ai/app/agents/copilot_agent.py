@@ -11,13 +11,47 @@ from app.tools.graph_tools import make_graph_tools
 log = logging.getLogger("copilot")
 
 _SYSTEM = """You are a study copilot for a personalised learning platform.
-You know which topic the user is studying and can look up their graph state using tools.
 
-Answer questions concisely and clearly. If the user seems confused, suggest escalating
-the explanation level. Never give away quiz answers — guide instead.
+You will be told which topic the user is currently studying, which topics they have
+already mastered, and which topics are still in progress. Use this context to tailor
+every response:
 
-Use get_topic to refresh topic state when needed. Use get_available_topics to see
-what the user can study next and suggest a logical path."""
+- "give me an example", "show me an example", "explain this" → use the CURRENT topic
+  (the one the user is actively studying right now).
+- "quiz me", "test me", "questions" → quiz on topics from the MASTERED list (not the
+  current one — the user is still learning it). Mix easy and harder questions; cover
+  several mastered topics if possible. If there are no mastered topics yet, say so and
+  offer to quiz the current topic instead.
+- "what's next", "where do I go" → suggest from in_progress or available topics.
+
+Other rules:
+- Be concise and clear. Markdown is allowed.
+- Never give away quiz answers — guide instead.
+- If you need fresh data (e.g. a topic the user names that isn't in the injected
+  context), use get_topic / get_available_topics."""
+
+
+def build_context_block(
+    current_topic: dict | None,
+    mastered: list[dict],
+    in_progress: list[dict],
+) -> str:
+    def _fmt(topics: list[dict]) -> str:
+        if not topics:
+            return "  (none)"
+        return "\n".join(f"  - {t['name']} (id={t['id']})" for t in topics)
+
+    cur = (
+        f"{current_topic['name']} (id={current_topic['id']}, status={current_topic.get('status', '?')})"
+        if current_topic else "(none)"
+    )
+    return (
+        "\n\n--- USER GRAPH CONTEXT (injected at request time) ---\n"
+        f"Current topic the user is studying:\n  {cur}\n\n"
+        f"Mastered topics ({len(mastered)}):\n{_fmt(mastered)}\n\n"
+        f"In-progress topics ({len(in_progress)}):\n{_fmt(in_progress)}\n"
+        "--- END CONTEXT ---"
+    )
 
 
 async def _trim_history(history: list[dict]) -> list[dict]:

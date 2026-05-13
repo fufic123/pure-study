@@ -62,3 +62,12 @@ class GraphClient:
             )
             resp.raise_for_status()
             return resp.json()
+
+    async def list_topics(self) -> list[dict]:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                f"{settings.graph_service_url}/graph/topics",
+                headers=self._headers,
+            )
+            resp.raise_for_status()
+            return resp.json()

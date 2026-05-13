@@ -2,7 +2,7 @@ import logging
 
 from fastapi import Header
 
-from app.agents.copilot_agent import CopilotAgent
+from app.agents.copilot_agent import CopilotAgent, build_context_block
 from app.agents.explanation_agent import ExplanationAgent
 from app.agents.graph_gen_agent import GraphGenAgent
 from app.agents.onboarding_agent import OnboardingAgent
@@ -63,7 +63,22 @@ class AIHandler:
         x_user_id: str = Header(...),
     ) -> CopilotResponse:
         log.info("copilot | user=%s topic=%s msg=%s", x_user_id, body.topic_id, body.message[:80])
+
+        graph = GraphClient(x_user_id)
+        all_topics = await graph.list_topics()
+        current_topic = next((t for t in all_topics if t["id"] == body.topic_id), None)
+        mastered = [t for t in all_topics if t.get("status") == "mastered"]
+        in_progress = [t for t in all_topics if t.get("status") == "in_progress"]
+        log.info(
+            "copilot context | user=%s current=%s mastered=%d in_progress=%d",
+            x_user_id, current_topic["name"] if current_topic else "?",
+            len(mastered), len(in_progress),
+        )
+
         agent = CopilotAgent(user_id=x_user_id)
+        agent.system_prompt = agent.system_prompt + build_context_block(
+            current_topic, mastered, in_progress,
+        )
         reply, updated_history = await agent.chat(body.history, body.message)
         log.info("copilot done | user=%s reply_len=%d", x_user_id, len(reply))
         return CopilotResponse(reply=reply, history=updated_history)
