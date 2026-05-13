@@ -214,4 +214,159 @@ cd services/material && uv run pytest -v   #  7 tests
 |--------|------|-------------|
 | GET | `/material/sources` | List available sources |
 | POST | `/material/search` | Search courses by query |
+
+## SEO
+
+Pure Study is an authenticated SPA — most pages live behind login and have no business
+being indexed. The SEO surface is intentionally small:
+
+| Path | Served by | Indexed | Purpose |
+|------|-----------|---------|---------|
+| `/` | static `landing.html` | yes | marketing / acquisition |
+| `/login` | SPA (`index.html`) | yes | brand keyword fallback |
+| `/onboarding`, `/courses`, `/courses/:id`, `/graph` | SPA | **no** | per-user state, blocked in `robots.txt` |
+| `/robots.txt`, `/sitemap.xml` | static | yes | crawler discovery |
+
+### How search engines see the site
+
+A search-engine crawler (Googlebot, Bingbot, etc.) doesn't run JavaScript reliably
+or quickly. Static `landing.html` is plain server-rendered HTML — the crawler can
+parse it in one request, extract meta tags and structured data, and add it to the
+index. The SPA shell at `index.html` is mostly an empty `<div id="root">` until
+React boots; crawlers still see the meta tags but the body content is hidden behind
+JS execution, which Google does (delayed, in a second pass) but other crawlers
+mostly don't.
+
+That's why `/` serves a separate static HTML file and not the SPA. The route is
+matched by nginx with an exact-match `location = /` block that sits **above** the
+SPA fallback `location /` block — nginx picks the most specific match, so a request
+for `/` hits the landing while `/login`, `/courses/abc`, etc. still fall through to
+the SPA.
+
+```nginx
+# nginx.conf
+location = / {
+    try_files /landing.html =404;
+}
+location = /robots.txt { try_files $uri =404; }
+location = /sitemap.xml { try_files $uri =404; }
+location ~ ^/(auth|graph|ai|material|check)/ {
+    proxy_pass http://gateway:8000;
+}
+location / {
+    try_files $uri $uri/ /index.html;  # SPA fallback
+}
+```
+
+### What's in the landing's `<head>`
+
+Every SEO signal lives in `<head>` so the crawler picks them up before the body.
+
+**1. Basic meta**
+```html
+<title>Pure.study — Learn anything as a personalized knowledge graph</title>
+<meta name="description" content="..." />     <!-- ~155 chars, becomes the SERP snippet -->
+<meta name="robots" content="index, follow" /> <!-- explicit allow -->
+<link rel="canonical" href="https://pure.study/" /> <!-- dedupes URL variants -->
+```
+The `<title>` and `<meta description>` are what Google literally shows in the
+search results. Title is a ranking signal; description is not (officially), but
+it controls click-through rate.
+
+**2. Open Graph** — for previews in Slack, Facebook, LinkedIn, iMessage, etc.
+```html
+<meta property="og:type" content="website" />
+<meta property="og:title" content="..." />
+<meta property="og:description" content="..." />
+<meta property="og:image" content="https://pure.study/og-image.png" />
+<meta property="og:url" content="https://pure.study/" />
+```
+When someone pastes a Pure Study link into Slack, Slack fetches the URL,
+parses `og:*` tags, and renders the card. Same protocol for FB/LinkedIn/Discord.
+
+**3. Twitter Card** — Twitter/X uses its own dialect.
+```html
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="..." />
+<meta name="twitter:image" content="..." />
+```
+
+**4. Structured data (JSON-LD)** — machine-readable description of *what the page
+is*. Powers rich snippets (star ratings, sitelinks, search boxes, app cards).
+```html
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Pure Study",
+  "applicationCategory": "EducationalApplication",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+```
+Schema.org defines hundreds of types (`Article`, `Product`, `Course`, `Person`,
+`Organization`, `Recipe`, etc.). The crawler treats this as ground truth — much
+more reliable than guessing from prose.
+
+### `robots.txt` — controlling what gets crawled
+
+Tells crawlers which paths are off-limits:
+```
+User-agent: *
+Allow: /
+Allow: /login
+Disallow: /onboarding
+Disallow: /courses
+Disallow: /graph
+Disallow: /auth/
+Sitemap: https://pure.study/sitemap.xml
+```
+Two things to note:
+- `Disallow` is a *request*, not a security control — well-behaved crawlers
+  obey it, but it doesn't hide the URLs. Auth-gating is still what protects them.
+- The `Sitemap:` line tells crawlers where the URL list lives.
+
+### `sitemap.xml` — telling crawlers what to crawl
+
+A simple XML list of every public URL. For a SaaS prototype it's tiny, but for
+content sites (blogs, docs) it scales to thousands of entries:
+```xml
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://pure.study/</loc><priority>1.0</priority></url>
+  <url><loc>https://pure.study/login</loc><priority>0.6</priority></url>
+</urlset>
+```
+Submit it once in Google Search Console; Google will recrawl it periodically.
+
+### How a search query becomes a Pure Study visit
+
+1. User types "learn python knowledge graph" into Google.
+2. Google's index has Pure Study's landing because:
+   - Googlebot fetched `https://pure.study/`
+   - Read `<title>`, `<meta description>`, body text, JSON-LD
+   - Stored relevance scores against keywords
+3. Google ranks Pure Study among the results. Ranking factors:
+   - **On-page**: keyword match in title/headings/body, freshness, page speed
+     (Core Web Vitals — LCP, CLS, INP), mobile-friendliness, HTTPS
+   - **Off-page**: backlinks from other sites (number + authority), brand mentions
+   - **User signals**: click-through rate, dwell time, pogo-sticking
+4. User clicks. Sees the static landing. Click "Start free" → `/login` → signup.
+
+The landing exists *only* to win step 4. Nothing inside the app is for SEO.
+
+### What's still missing in this repo
+
+For a real deploy you'd want:
+- A real **`og-image.png`** at 1200×630 (currently the meta links to a path that
+  doesn't exist — Slack will render the card without a preview image).
+- Real domain in `canonical` / `og:url` (currently hardcoded `pure.study`).
+- A **proper landing prerender** if you want the SPA shell `/login` to score
+  well too (use [`vite-plugin-prerender`](https://github.com/cap-js-community/vite-plugin-prerender)
+  or migrate the landing into Next.js — current setup keeps the landing static,
+  which is enough).
+- **Google Search Console** verification + sitemap submission after deploy.
+- **Analytics** (Plausible / GA4) to measure landing → signup conversion.
+- If pursuing SEO seriously: a `/blog/...` or `/learn/...` section with one
+  article per long-tail keyword (e.g. "How to learn Python in 4 weeks"), each
+  ending in a CTA to the app. That's how every content-led SaaS grows organic.
 | GET | `/material/sources/{source}/courses/{id}/topics` | Fetch course topics |

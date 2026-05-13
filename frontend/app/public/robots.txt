@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /login
+
+# Authenticated areas — no public value, don't index
+Disallow: /onboarding
+Disallow: /courses
+Disallow: /courses/
+Disallow: /graph
+Disallow: /auth/
+
+Sitemap: https://pure.study/sitemap.xml
