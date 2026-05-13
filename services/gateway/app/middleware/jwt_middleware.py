@@ -8,10 +8,29 @@ from starlette.responses import JSONResponse
 
 log = logging.getLogger("jwt")
 
+# Paths that don't require an access token. Everything else under /auth/
+# (notably /auth/users/*, /auth/me) goes through the same JWT check as the
+# rest of the gateway.
+_PUBLIC_PATHS = (
+    "/auth/login",
+    "/auth/register",
+    "/auth/refresh",
+    "/auth/logout",
+    "/auth/google",
+    "/auth/google/callback",
+)
+
+
+def _is_public(path: str) -> bool:
+    if path in _PUBLIC_PATHS:
+        return True
+    # Allow nested google routes (e.g. /auth/google/anything) as part of the OAuth flow
+    return path.startswith("/auth/google/")
+
 
 class JWTMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if request.url.path.startswith("/auth/"):
+        if _is_public(request.url.path):
             return await call_next(request)
 
         token = request.cookies.get("access_token")

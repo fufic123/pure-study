@@ -28,18 +28,21 @@ class AuthService:
         self.token_repo = RefreshTokenRepository(session)
         self.token_svc = TokenService()
 
-    async def register(self, email: str, password: str) -> tuple[TokenResponse, str]:
+    async def register(self, email: str, password: str) -> tuple[TokenResponse, str, bool]:
         log.debug("register attempt | email=%s", email)
         if await self.user_repo.get_by_email(email):
             log.warning("register conflict | email=%s already exists", email)
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
         hashed_password = _hash_password(password)
-        user = await self.user_repo.create(email=email, hashed_password=hashed_password)
-        log.info("registered | user_id=%s email=%s", user.id, email)
-        return await self._issue_tokens(user.id, user.email), user.email
+        is_first = await self.user_repo.count() == 0
+        user = await self.user_repo.create(
+            email=email, hashed_password=hashed_password, is_admin=is_first,
+        )
+        log.info("registered | user_id=%s email=%s is_admin=%s", user.id, email, user.is_admin)
+        return await self._issue_tokens(user.id, user.email, user.is_admin), user.email, user.is_admin
 
-    async def login(self, email: str, password: str) -> tuple[TokenResponse, str]:
+    async def login(self, email: str, password: str) -> tuple[TokenResponse, str, bool]:
         log.debug("login attempt | email=%s", email)
         user = await self.user_repo.get_by_email(email)
         if not user or not user.hashed_password or not _verify_password(password, user.hashed_password):
@@ -48,9 +51,9 @@ class AuthService:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
         log.info("login ok | user_id=%s email=%s", user.id, email)
-        return await self._issue_tokens(user.id, user.email), user.email
+        return await self._issue_tokens(user.id, user.email, user.is_admin), user.email, user.is_admin
 
-    async def refresh(self, raw_token: str) -> tuple[TokenResponse, str]:
+    async def refresh(self, raw_token: str) -> tuple[TokenResponse, str, bool]:
         token_hash = self.token_svc.hash_refresh_token(raw_token)
         record = await self.token_repo.get_by_hash(token_hash)
         if not record:
@@ -63,7 +66,7 @@ class AuthService:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
         log.info("token refreshed | user_id=%s", record.user_id)
-        return await self._issue_tokens(record.user_id, user.email), user.email
+        return await self._issue_tokens(record.user_id, user.email, user.is_admin), user.email, user.is_admin
 
     async def logout(self, raw_token: str) -> None:
         token_hash = self.token_svc.hash_refresh_token(raw_token)
@@ -75,8 +78,8 @@ class AuthService:
         else:
             log.debug("logout called with unknown/already-revoked token")
 
-    async def _issue_tokens(self, user_id: uuid.UUID, email: str) -> TokenResponse:
-        access_token = self.token_svc.create_access_token(user_id, email)
+    async def _issue_tokens(self, user_id: uuid.UUID, email: str, is_admin: bool = False) -> TokenResponse:
+        access_token = self.token_svc.create_access_token(user_id, email, is_admin)
         raw_refresh, refresh_hash = self.token_svc.generate_refresh_token()
         expires_at = self.token_svc.refresh_token_expires_at()
 

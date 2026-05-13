@@ -29,8 +29,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   async initialize() {
     try {
-      const { email } = await refresh()
-      set({ user: { id: '', email, name: email.split('@')[0] }, isInitialized: true })
+      const { email, is_admin } = await refresh()
+      set({
+        user: { id: '', email, name: email.split('@')[0], is_admin },
+        isInitialized: true,
+      })
     } catch {
       set({ user: null, isInitialized: true })
     }

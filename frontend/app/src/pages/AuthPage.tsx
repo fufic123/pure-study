@@ -46,12 +46,18 @@ export default function AuthPage() {
     setLoading(true)
     setError(null)
     try {
+      let info
       if (mode === 'login') {
-        await apiLogin(email, password)
+        info = await apiLogin(email, password)
       } else {
-        await apiRegister(email, password, name)
+        info = await apiRegister(email, password, name)
       }
-      loginStore({ id: '', email, name: name || email.split('@')[0] })
+      loginStore({
+        id: '',
+        email,
+        name: name || email.split('@')[0],
+        is_admin: info.is_admin,
+      })
       if (mode === 'register') {
         navigate('/onboarding')
       } else {

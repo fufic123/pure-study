@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from app.api.routers.auth_router import router as auth_router
 from app.api.routers.google_router import router as google_router
+from app.api.routers.user_router import router as user_router
 from app.db.session import Base, engine
 from app.logging_config import setup_logging
 from app.middleware.request_logging import RequestLoggingMiddleware
@@ -23,3 +24,4 @@ app.add_middleware(RequestLoggingMiddleware)
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(google_router, prefix="/auth/google", tags=["google"])
+app.include_router(user_router, prefix="/auth", tags=["users"])

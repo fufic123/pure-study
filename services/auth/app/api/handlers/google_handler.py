@@ -20,7 +20,7 @@ async def google_callback_handler(
     state: str | None = Query(None),
     session: AsyncSession = Depends(get_session),
 ) -> RedirectResponse:
-    tokens, _email = await GoogleService(session).handle_callback(code)
+    tokens, _email, _is_admin = await GoogleService(session).handle_callback(code)
     response = RedirectResponse(url=f"{settings.frontend_url}/auth/callback", status_code=302)
     response.set_cookie(
         "access_token", tokens.access_token,

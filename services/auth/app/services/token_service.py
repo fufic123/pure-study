@@ -8,11 +8,12 @@ from settings import settings
 
 
 class TokenService:
-    def create_access_token(self, user_id: uuid.UUID, email: str) -> str:
+    def create_access_token(self, user_id: uuid.UUID, email: str, is_admin: bool = False) -> str:
         now = datetime.now(timezone.utc)
         payload = {
             "sub": str(user_id),
             "email": email,
+            "is_admin": is_admin,
             "iat": now,
             "exp": now + timedelta(minutes=settings.access_token_expire_minutes),
         }

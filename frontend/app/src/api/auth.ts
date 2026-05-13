@@ -1,7 +1,9 @@
 import { apiClient } from './client'
 
-export async function login(email: string, password: string): Promise<{ email: string }> {
-  const { data } = await apiClient.post<{ email: string }>('/auth/login', { email, password })
+export interface AuthInfo { email: string; is_admin: boolean }
+
+export async function login(email: string, password: string): Promise<AuthInfo> {
+  const { data } = await apiClient.post<AuthInfo>('/auth/login', { email, password })
   return data
 }
 
@@ -9,13 +11,13 @@ export async function register(
   email: string,
   password: string,
   name: string,
-): Promise<{ email: string }> {
-  const { data } = await apiClient.post<{ email: string }>('/auth/register', { email, password, name })
+): Promise<AuthInfo> {
+  const { data } = await apiClient.post<AuthInfo>('/auth/register', { email, password, name })
   return data
 }
 
-export async function refresh(): Promise<{ email: string }> {
-  const { data } = await apiClient.post<{ email: string }>('/auth/refresh', null)
+export async function refresh(): Promise<AuthInfo> {
+  const { data } = await apiClient.post<AuthInfo>('/auth/refresh', null)
   return data
 }
 

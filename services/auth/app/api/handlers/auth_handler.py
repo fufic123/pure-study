@@ -33,9 +33,9 @@ async def register_handler(
     response: Response,
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    tokens, email = await AuthService(session).register(body.email, body.password)
+    tokens, email, is_admin = await AuthService(session).register(body.email, body.password)
     _set_token_cookies(response, tokens)
-    return {"email": email}
+    return {"email": email, "is_admin": is_admin}
 
 
 async def login_handler(
@@ -43,9 +43,9 @@ async def login_handler(
     response: Response,
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    tokens, email = await AuthService(session).login(body.email, body.password)
+    tokens, email, is_admin = await AuthService(session).login(body.email, body.password)
     _set_token_cookies(response, tokens)
-    return {"email": email}
+    return {"email": email, "is_admin": is_admin}
 
 
 async def refresh_handler(
@@ -55,9 +55,9 @@ async def refresh_handler(
 ) -> dict:
     if not refresh_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token")
-    tokens, email = await AuthService(session).refresh(refresh_token)
+    tokens, email, is_admin = await AuthService(session).refresh(refresh_token)
     _set_token_cookies(response, tokens)
-    return {"email": email}
+    return {"email": email, "is_admin": is_admin}
 
 
 async def logout_handler(

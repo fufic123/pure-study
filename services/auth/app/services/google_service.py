@@ -32,7 +32,7 @@ class GoogleService:
         ])
         return f"{_GOOGLE_AUTH_URL}?{params}"
 
-    async def handle_callback(self, code: str) -> tuple[TokenResponse, str]:
+    async def handle_callback(self, code: str) -> tuple[TokenResponse, str, bool]:
         google_access_token = await self._exchange_code(code)
         user_info = await self._fetch_user_info(google_access_token)
 
@@ -46,9 +46,12 @@ class GoogleService:
             if user:
                 await self.user_repo.update_google_id(user.id, google_id)
             else:
-                user = await self.user_repo.create(email=email, google_id=google_id)
+                is_first = await self.user_repo.count() == 0
+                user = await self.user_repo.create(
+                    email=email, google_id=google_id, is_admin=is_first,
+                )
 
-        return await self._issue_tokens(user.id, user.email), user.email
+        return await self._issue_tokens(user.id, user.email, user.is_admin), user.email, user.is_admin
 
     async def _exchange_code(self, code: str) -> str:
         async with httpx.AsyncClient() as client:
@@ -76,8 +79,8 @@ class GoogleService:
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Google userinfo fetch failed")
         return resp.json()
 
-    async def _issue_tokens(self, user_id: uuid.UUID, email: str) -> TokenResponse:
-        access_token = self.token_svc.create_access_token(user_id, email)
+    async def _issue_tokens(self, user_id: uuid.UUID, email: str, is_admin: bool = False) -> TokenResponse:
+        access_token = self.token_svc.create_access_token(user_id, email, is_admin)
         raw_refresh, refresh_hash = self.token_svc.generate_refresh_token()
         expires_at = self.token_svc.refresh_token_expires_at()
 
