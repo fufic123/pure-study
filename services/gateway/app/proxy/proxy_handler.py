@@ -3,12 +3,16 @@ import time
 
 import httpx
 from settings import settings
+from starlette.datastructures import MutableHeaders
 from starlette.requests import Request
 from starlette.responses import Response
 
 log = logging.getLogger("proxy")
 
-_HOP_BY_HOP = frozenset({"transfer-encoding", "connection", "keep-alive", "te", "trailers", "upgrade"})
+_HOP_BY_HOP = frozenset({
+    "transfer-encoding", "connection", "keep-alive", "te", "trailers", "upgrade",
+    "date", "server", "content-length",
+})
 
 _ROUTE_MAP: list[tuple[str, str]] = [
     ("/auth/", settings.auth_service_url),
@@ -81,11 +85,13 @@ class ProxyHandler:
         if upstream.status_code >= 500:
             log.error("upstream 5xx body: %s", upstream.text[:500])
 
-        response_headers = {
-            k: v for k, v in upstream.headers.items() if k.lower() not in _HOP_BY_HOP
-        }
+        raw_headers = [
+            (k.lower().encode("latin-1"), v.encode("latin-1"))
+            for k, v in upstream.headers.multi_items()
+            if k.lower() not in _HOP_BY_HOP
+        ]
         return Response(
             content=upstream.content,
             status_code=upstream.status_code,
-            headers=response_headers,
+            headers=MutableHeaders(raw=raw_headers),
         )

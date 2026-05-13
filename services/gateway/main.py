@@ -15,7 +15,7 @@ setup_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.http_client = httpx.AsyncClient(timeout=30.0)
+    app.state.http_client = httpx.AsyncClient(timeout=httpx.Timeout(connect=5.0, read=180.0, write=30.0, pool=5.0))
     app.state.redis = redis.from_url(settings.redis_url, decode_responses=True)
     yield
     await app.state.http_client.aclose()
