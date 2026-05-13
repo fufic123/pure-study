@@ -31,3 +31,7 @@ uv.lock
 # Node
 node_modules/
 frontend/app/dist/
+
+# Screenshots
+Screenshot*.png
+Screenshot*.jpg
