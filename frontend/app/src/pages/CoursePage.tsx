@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getCourse } from '../api/graph'
 import { explain as apiExplain, copilot as apiCopilot } from '../api/ai'
 import { useTopicsStore } from '../store/topics'
@@ -246,6 +246,7 @@ function CopilotChat({ topic }: CopilotChatProps) {
 export default function CoursePage() {
   const { courseId } = useParams<{ courseId: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { openTopic, masterTopic, addRecent, recentIds, flashEdgeIds, toast } = useTopicsStore()
 
   const { data: course, isLoading } = useQuery({
@@ -281,6 +282,7 @@ export default function CoursePage() {
   async function handleTransition(id: string, action: 'open' | 'master') {
     if (action === 'open') await openTopic(id)
     else await masterTopic(id)
+    await queryClient.invalidateQueries({ queryKey: ['course', courseId] })
   }
 
   if (isLoading) {

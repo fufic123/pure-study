@@ -102,9 +102,10 @@ export default function GraphView({
 
   const links = useMemo<D3Link[]>(() => {
     const all: D3Link[] = []
+    const ids = new Set(topics.map((t) => t.id))
     topics.forEach((t) => {
-      t.prereqs.forEach((p) => {
-        all.push({ source: p, target: t.id })
+      ;(t.prereqs ?? []).forEach((p) => {
+        if (ids.has(p)) all.push({ source: p, target: t.id })
       })
     })
     return all
@@ -310,7 +311,18 @@ export default function GraphView({
       }
     })
 
+    const ro = new ResizeObserver(() => {
+      const nw = wrap.clientWidth
+      const nh = wrap.clientHeight
+      if (nw > 0 && nh > 0) {
+        sim.force('center', d3.forceCenter(nw / 2, nh / 2))
+        sim.alpha(0.5).restart()
+      }
+    })
+    ro.observe(wrap)
+
     return () => {
+      ro.disconnect()
       sim.stop()
     }
   }, [topics, links, density]) // eslint-disable-line react-hooks/exhaustive-deps

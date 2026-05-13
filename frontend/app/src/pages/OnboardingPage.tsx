@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { onboardingMessage } from '../api/ai'
 import type { Message } from '../types'
 
@@ -69,7 +71,13 @@ export default function OnboardingPage() {
           {chatHistory.map((m, i) => (
             <div key={i} className={`bubble-row ${m.role === 'user' ? 'user' : ''}`}>
               {m.role === 'ai' && <div className="avatar ai">P</div>}
-              <div className={`bubble ${m.role === 'user' ? 'user' : ''}`}>{m.text}</div>
+              <div className={`bubble ${m.role === 'user' ? 'user' : ''}`}>
+                {m.role === 'ai' ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
+                ) : (
+                  m.text
+                )}
+              </div>
               {m.role === 'user' && <div className="avatar">YOU</div>}
             </div>
           ))}
