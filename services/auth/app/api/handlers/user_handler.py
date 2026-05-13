@@ -101,7 +101,11 @@ async def users_report_xml(
 ) -> Response:
     users = await UserService(session).list_users()
     xml = _users_to_xml(users)
-    return Response(content=xml, media_type="application/xml")
+    return Response(
+        content=xml,
+        media_type="application/xml",
+        headers={"Content-Disposition": 'attachment; filename="users-report.xml"'},
+    )
 
 
 async def users_report_xsl() -> Response:
@@ -140,4 +144,8 @@ async def users_report_html(
     xsl_doc = etree.parse(str(xsl_path))
     transform = etree.XSLT(xsl_doc)
     html_doc = transform(xml_doc)
-    return Response(content=str(html_doc), media_type="text/html; charset=utf-8")
+    return Response(
+        content=str(html_doc),
+        media_type="text/html; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="users-report.html"'},
+    )

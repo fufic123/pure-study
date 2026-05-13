@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { deleteUser, listUsers, type AdminUser } from '../../api/users'
 import { useFlashStore } from '../../store/flash'
 import Topbar from '../../components/Topbar'
+import AdminNav from '../../components/AdminNav'
 
 export default function UsersListPage() {
   const navigate = useNavigate()
@@ -41,6 +42,7 @@ export default function UsersListPage() {
   return (
     <div className="app-shell">
       <Topbar />
+      <AdminNav />
       <div style={{ padding: '24px 32px', overflow: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 18 }}>
           <div>
@@ -53,8 +55,7 @@ export default function UsersListPage() {
             <a
               className="btn"
               href="/auth/users/report.html"
-              target="_blank"
-              rel="noreferrer"
+              download="users-report.html"
               style={{
                 padding: '7px 12px',
                 fontSize: 12,
@@ -63,7 +64,7 @@ export default function UsersListPage() {
                 textDecoration: 'none',
               }}
             >
-              XML/XSLT report ↗
+              ⤓ Download XML/XSLT report
             </a>
             <button
               onClick={() => navigate('/admin/users/new')}

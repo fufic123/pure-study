@@ -13,6 +13,9 @@ import UsersListPage from './pages/admin/UsersListPage'
 import UserNewPage from './pages/admin/UserNewPage'
 import UserDetailPage from './pages/admin/UserDetailPage'
 import UserEditPage from './pages/admin/UserEditPage'
+import CoursesListPage from './pages/admin/CoursesListPage'
+import TopicsListPage from './pages/admin/TopicsListPage'
+import EdgesListPage from './pages/admin/EdgesListPage'
 import FlashBanner from './components/FlashBanner'
 
 function Loading() {
@@ -79,6 +82,9 @@ export default function App() {
         <Route path="/admin/users/new" element={<RequireAdmin><UserNewPage /></RequireAdmin>} />
         <Route path="/admin/users/:id" element={<RequireAdmin><UserDetailPage /></RequireAdmin>} />
         <Route path="/admin/users/:id/edit" element={<RequireAdmin><UserEditPage /></RequireAdmin>} />
+        <Route path="/admin/courses" element={<RequireAdmin><CoursesListPage /></RequireAdmin>} />
+        <Route path="/admin/topics" element={<RequireAdmin><TopicsListPage /></RequireAdmin>} />
+        <Route path="/admin/edges" element={<RequireAdmin><EdgesListPage /></RequireAdmin>} />
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

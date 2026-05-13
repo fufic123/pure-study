@@ -46,6 +46,10 @@ class JWTMiddleware(BaseHTTPMiddleware):
         try:
             payload = jwt.decode(token, settings.public_key, algorithms=["RS256"])
             request.state.user_id = payload["sub"]
+            request.state.is_admin = bool(payload.get("is_admin", False))
+            if "/admin/" in request.url.path and not request.state.is_admin:
+                log.warning("admin path blocked | user=%s | path=%s", payload["sub"], request.url.path)
+                return JSONResponse({"detail": "Admin access required"}, status_code=403)
             log.debug("JWT ok | user=%s | path=%s", payload["sub"], request.url.path)
         except jwt.ExpiredSignatureError:
             log.warning("JWT expired | path=%s", request.url.path)
