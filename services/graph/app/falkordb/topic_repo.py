@@ -50,10 +50,19 @@ class TopicRepository:
 
     async def list_by_course(self, course_id: str) -> list[dict]:
         result = await self.graph.query(
-            "MATCH (c:Course {id: $id})-[:CONTAINS]->(t:Topic) RETURN t",
+            """
+            MATCH (c:Course {id: $id})-[:CONTAINS]->(t:Topic)
+            OPTIONAL MATCH (t)-[:REQUIRES]->(req:Topic)
+            RETURN t, collect(req.id) AS prereqs
+            """,
             {"id": course_id},
         )
-        return [dict(row[0].properties) for row in result.result_set]
+        out = []
+        for row in result.result_set:
+            props = dict(row[0].properties)
+            props["prereqs"] = [p for p in row[1] if p]
+            out.append(props)
+        return out
 
     async def list_by_status(self, status: TopicStatus) -> list[dict]:
         result = await self.graph.query(
