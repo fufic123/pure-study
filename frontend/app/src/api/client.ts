@@ -3,65 +3,50 @@ import axios from 'axios'
 export const apiClient = axios.create({
   baseURL: '/',
   headers: { 'Content-Type': 'application/json' },
-})
-
-// Attach access token to every request
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
+  withCredentials: true,
 })
 
 let isRefreshing = false
-let refreshQueue: Array<(token: string) => void> = []
+let refreshQueue: Array<() => void> = []
+let rejectQueue: Array<(err: unknown) => void> = []
 
-function processQueue(token: string) {
-  refreshQueue.forEach((cb) => cb(token))
+function processQueue() {
+  refreshQueue.forEach((cb) => cb())
   refreshQueue = []
+  rejectQueue = []
 }
 
-// On 401: attempt silent token refresh, retry once
+function rejectAll(err: unknown) {
+  rejectQueue.forEach((cb) => cb(err))
+  refreshQueue = []
+  rejectQueue = []
+}
+
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config as typeof error.config & { _retry?: boolean }
 
-    if (error.response?.status === 401 && !original._retry) {
-      original._retry = true
+    const isRefreshEndpoint = (original.url ?? '').includes('/auth/refresh')
 
-      const refreshToken = localStorage.getItem('refresh_token')
-      if (!refreshToken) {
-        clearTokens()
-        window.location.href = '/login'
-        return Promise.reject(error)
-      }
+    if (error.response?.status === 401 && !original._retry && !isRefreshEndpoint) {
+      original._retry = true
 
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
-          refreshQueue.push((token) => {
-            original.headers.Authorization = `Bearer ${token}`
-            resolve(apiClient(original))
-          })
-          // If refresh ultimately fails, reject queued requests
-          setTimeout(() => reject(error), 10000)
+          refreshQueue.push(() => resolve(apiClient(original)))
+          rejectQueue.push(reject)
         })
       }
 
       isRefreshing = true
       try {
-        const { data } = await axios.post<{ access_token: string }>('/auth/refresh', {
-          refresh_token: refreshToken,
-        })
-        localStorage.setItem('access_token', data.access_token)
-        processQueue(data.access_token)
-        original.headers.Authorization = `Bearer ${data.access_token}`
+        await axios.post('/auth/refresh', null, { withCredentials: true })
+        processQueue()
         return apiClient(original)
-      } catch {
-        clearTokens()
-        window.location.href = '/login'
-        return Promise.reject(error)
+      } catch (refreshErr) {
+        rejectAll(refreshErr)
+        return Promise.reject(refreshErr)
       } finally {
         isRefreshing = false
       }
@@ -70,8 +55,3 @@ apiClient.interceptors.response.use(
     return Promise.reject(error)
   },
 )
-
-export function clearTokens() {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
-}

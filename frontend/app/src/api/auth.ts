@@ -1,8 +1,7 @@
 import { apiClient } from './client'
-import type { AuthTokens } from '../types'
 
-export async function login(email: string, password: string): Promise<AuthTokens> {
-  const { data } = await apiClient.post<AuthTokens>('/auth/login', { email, password })
+export async function login(email: string, password: string): Promise<{ email: string }> {
+  const { data } = await apiClient.post<{ email: string }>('/auth/login', { email, password })
   return data
 }
 
@@ -10,16 +9,18 @@ export async function register(
   email: string,
   password: string,
   name: string,
-): Promise<AuthTokens> {
-  const { data } = await apiClient.post<AuthTokens>('/auth/register', { email, password, name })
+): Promise<{ email: string }> {
+  const { data } = await apiClient.post<{ email: string }>('/auth/register', { email, password, name })
   return data
 }
 
-export async function refresh(refreshToken: string): Promise<{ access_token: string }> {
-  const { data } = await apiClient.post<{ access_token: string }>('/auth/refresh', {
-    refresh_token: refreshToken,
-  })
+export async function refresh(): Promise<{ email: string }> {
+  const { data } = await apiClient.post<{ email: string }>('/auth/refresh', null)
   return data
+}
+
+export async function logout(): Promise<void> {
+  await apiClient.post('/auth/logout', null)
 }
 
 export async function getGoogleAuthUrl(): Promise<string> {

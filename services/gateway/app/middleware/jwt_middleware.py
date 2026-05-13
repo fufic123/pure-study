@@ -14,12 +14,16 @@ class JWTMiddleware(BaseHTTPMiddleware):
         if request.url.path.startswith("/auth/"):
             return await call_next(request)
 
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            log.warning("missing/invalid Authorization header | path=%s", request.url.path)
-            return JSONResponse({"detail": "Missing or invalid authorization header"}, status_code=401)
+        token = request.cookies.get("access_token")
+        if not token:
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header.removeprefix("Bearer ")
 
-        token = auth_header.removeprefix("Bearer ")
+        if not token:
+            log.warning("missing token | path=%s", request.url.path)
+            return JSONResponse({"detail": "Not authenticated"}, status_code=401)
+
         try:
             payload = jwt.decode(token, settings.public_key, algorithms=["RS256"])
             request.state.user_id = payload["sub"]

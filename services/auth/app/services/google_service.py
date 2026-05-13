@@ -1,3 +1,5 @@
+import uuid
+
 import httpx
 from fastapi import HTTPException, status
 from settings import settings
@@ -30,7 +32,7 @@ class GoogleService:
         ])
         return f"{_GOOGLE_AUTH_URL}?{params}"
 
-    async def handle_callback(self, code: str) -> TokenResponse:
+    async def handle_callback(self, code: str) -> tuple[TokenResponse, str]:
         google_access_token = await self._exchange_code(code)
         user_info = await self._fetch_user_info(google_access_token)
 
@@ -46,7 +48,7 @@ class GoogleService:
             else:
                 user = await self.user_repo.create(email=email, google_id=google_id)
 
-        return await self._issue_tokens(user.id)
+        return await self._issue_tokens(user.id, user.email), user.email
 
     async def _exchange_code(self, code: str) -> str:
         async with httpx.AsyncClient() as client:
@@ -74,8 +76,8 @@ class GoogleService:
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Google userinfo fetch failed")
         return resp.json()
 
-    async def _issue_tokens(self, user_id) -> TokenResponse:
-        access_token = self.token_svc.create_access_token(user_id)
+    async def _issue_tokens(self, user_id: uuid.UUID, email: str) -> TokenResponse:
+        access_token = self.token_svc.create_access_token(user_id, email)
         raw_refresh, refresh_hash = self.token_svc.generate_refresh_token()
         expires_at = self.token_svc.refresh_token_expires_at()
 

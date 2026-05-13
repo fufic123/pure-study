@@ -3,6 +3,8 @@ from fastapi.responses import RedirectResponse
 from settings import settings
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dtos.token_response import TokenResponse
+from app.api.handlers.auth_handler import _ACCESS_MAX_AGE, _REFRESH_MAX_AGE
 from app.db.session import get_session
 from app.services.google_service import GoogleService
 
@@ -18,10 +20,14 @@ async def google_callback_handler(
     state: str | None = Query(None),
     session: AsyncSession = Depends(get_session),
 ) -> RedirectResponse:
-    tokens = await GoogleService(session).handle_callback(code)
-    redirect_url = (
-        f"{settings.frontend_url}/auth/callback"
-        f"?access_token={tokens.access_token}"
-        f"&refresh_token={tokens.refresh_token}"
+    tokens, _email = await GoogleService(session).handle_callback(code)
+    response = RedirectResponse(url=f"{settings.frontend_url}/auth/callback", status_code=302)
+    response.set_cookie(
+        "access_token", tokens.access_token,
+        httponly=True, samesite="lax", max_age=_ACCESS_MAX_AGE, path="/",
     )
-    return RedirectResponse(url=redirect_url, status_code=302)
+    response.set_cookie(
+        "refresh_token", tokens.refresh_token,
+        httponly=True, samesite="lax", max_age=_REFRESH_MAX_AGE, path="/",
+    )
+    return response

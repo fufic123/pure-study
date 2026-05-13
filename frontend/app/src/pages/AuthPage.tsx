@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login as apiLogin, register as apiRegister, getGoogleAuthUrl } from '../api/auth'
 import { useAuthStore } from '../store/auth'
-import type { User } from '../types'
 
 function GoogleIcon() {
   return (
@@ -47,17 +46,12 @@ export default function AuthPage() {
     setLoading(true)
     setError(null)
     try {
-      let tokens
-      let user: User
       if (mode === 'login') {
-        tokens = await apiLogin(email, password)
-        // Decode user from token or use email as fallback
-        user = { id: '', email, name: email.split('@')[0] }
+        await apiLogin(email, password)
       } else {
-        tokens = await apiRegister(email, password, name)
-        user = { id: '', email, name: name || email.split('@')[0] }
+        await apiRegister(email, password, name)
       }
-      loginStore(user, tokens)
+      loginStore({ id: '', email, name: name || email.split('@')[0] })
       if (mode === 'register') {
         navigate('/onboarding')
       } else {
